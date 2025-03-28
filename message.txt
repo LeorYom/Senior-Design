@@ -1,0 +1,835 @@
+// IMPORTANT: LCDWIKI_SPI LIBRARY MUST BE SPECIFICALLY
+// CONFIGURED FOR EITHER THE TFT SHIELD OR THE BREAKOUT BOARD.
+
+//This program is a demo of displaying string
+
+//when using the BREAKOUT BOARD only and using these hardware spi lines to the LCD,
+//the SDA pin and SCK pin is defined by the system and can't be modified.
+//if you don't need to control the LED pin,you can set it to 3.3V and set the pin definition to -1.
+//other pins can be defined by youself,for example
+//pin usage as follow:
+//                      CS  DC/RS  RESET  SDI/MOSI  SCK  SDO/MISO  LED    VCC     GND    
+//Arduino Uno&Mega2560  10    9      8       11     13      12      5   5V/3.3V   GND 
+
+//Remember to set the pins to suit your display module!
+
+
+//PROGRAMMED BY DANNY MOSS
+
+/***********************************************************************************
+* @attention
+*
+* THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
+* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE
+* TIME. AS A RESULT, QD electronic SHALL NOT BE HELD LIABLE FOR ANY
+* DIRECT, INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING
+* FROM THE CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE 
+* CODING INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
+**********************************************************************************/
+#include <LCDWIKI_GUI.h> //Core graphics library
+#include <LCDWIKI_SPI.h> //Hardware-specific library
+#include <ft6336g.h> //touch library
+#include <Arduino.h>
+
+
+//paramters define
+#define MODEL ST7796S
+#define CS   10    
+#define CD   9
+#define RST  8
+#define MOSI  11
+#define MISO  12
+#define SCK   13
+#define LED  5   //if you don't need to control the LED pin,you should set it to -1 and set it to 3.3V
+
+
+//touch screen paramters define
+#define OTT_MAX_TOUCH  2 
+#define INT  7
+#define CRST 6 
+#define SCL  A5
+#define SDA  A4
+
+
+
+
+//the definiens of software spi mode as follow:
+//if the IC model is known or the modules is unreadable,you can use this constructed function
+LCDWIKI_SPI mylcd(MODEL,CS,CD,MISO,MOSI,RST,SCK,LED); //model,cs,dc,miso,mosi,reset,sck,led
+
+//DOSEDOC LOGO
+const unsigned char bitmap_dosedoc [] PROGMEM = {
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xfe, 0x0f, 0xf0, 
+	0xfc, 0x3c, 0x0f, 0x07, 0xf8, 0x7f, 0x87, 0xff, 0xf0, 0xff, 0xff, 0xf3, 0xcf, 0x7b, 0xff, 0xff, 
+	0xf9, 0xf7, 0x9e, 0x7f, 0xff, 0xf0, 0xff, 0xff, 0xfd, 0x9f, 0xb7, 0xff, 0xff, 0xfe, 0xef, 0xdd, 
+	0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xbf, 0xde, 0xff, 0xff, 0xff, 0x5f, 0xeb, 0xff, 0xff, 0xf0, 
+	0xff, 0xff, 0xfe, 0x7f, 0xde, 0x3f, 0x0f, 0xff, 0x7f, 0xf3, 0xff, 0xff, 0xf0, 0xfe, 0xff, 0xbe, 
+	0x76, 0xef, 0x97, 0xf6, 0xff, 0xbb, 0x73, 0xff, 0xf7, 0xf0, 0xfc, 0x01, 0x86, 0x70, 0xef, 0xe7, 
+	0xf0, 0xc3, 0x38, 0x73, 0x00, 0x03, 0xf0, 0xfc, 0x01, 0x86, 0x70, 0xc1, 0xe7, 0x00, 0xc3, 0x38, 
+	0x73, 0x00, 0x03, 0xf0, 0xfe, 0x01, 0x8c, 0x31, 0xc0, 0x63, 0x00, 0xc7, 0x18, 0x63, 0x80, 0x07, 
+	0xf0, 0xfe, 0x01, 0xfc, 0x3f, 0x87, 0xe3, 0xf0, 0xfe, 0x0f, 0xc1, 0xf8, 0x07, 0xf0, 0xff, 0x01, 
+	0xf0, 0x0f, 0x07, 0x83, 0xf0, 0xf8, 0x07, 0x80, 0x78, 0x0f, 0xf0, 0xff, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0xf0, 0xff, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x1f, 0xf0, 0xff, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x3f, 0xf0, 0xff, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xf0, 0xff, 
+	0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xff, 0xf0, 0xff, 0xfe, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0xff, 0xf0, 0xff, 0xff, 0x80, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x1f, 0xff, 0xf0, 0xff, 0xff, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x7f, 0xff, 0xf0, 0xff, 0xff, 0xfc, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xff, 0xff, 0xf0, 
+	0xff, 0xff, 0xff, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 
+	0xfc, 0x00, 0x00, 0x00, 0x00, 0x03, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xf0, 0x00, 
+	0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xf0
+};
+
+//define some colour values
+#define  BLACK   0x0000
+#define BLUE    0x001F
+#define RED     0xF800
+#define GREEN   0x07E0
+#define CYAN    0x07FF
+#define MAGENTA 0xF81F
+#define YELLOW  0xFFE0
+#define WHITE   0xFFFF
+
+
+//the definitions of touch mode as follow:
+FT6336 my_tp(INT,CRST,SCL,SDA);
+
+//THIS DEALS WITH DRAWING THE IMAGE LIKE THE LOGO ON THE SCREEN
+void showbgd(int x, int y, const uint8_t *bmp, int w, int h, uint16_t color, uint16_t bg, uint8_t pad = 7)
+{
+    int yy, xx;
+    uint8_t first = 1, RVS = pad & 0x80;
+    uint16_t pixel;
+    pad &= 31;
+    uint16_t wid = (w + pad) & ~pad;                    //bits per row
+    //tft.setAddrWindow(x, y, x + w - 1, y + h - 1); //
+    mylcd.Set_Addr_Window(x, y, x + w - 1, y + h - 1); //
+    for (yy = 0; yy < h; yy++) {
+        uint32_t ofs = (RVS ? (h - yy - 1) : yy) * wid; //bit offset
+        const uint8_t *p = bmp + (ofs >> 3);            //flash address
+        uint8_t mask = 0x80 >> (ofs & 7);               //bit mask
+        uint8_t c = pgm_read_byte(p++);
+        for (xx = 0; xx < w; xx++) {
+            if (mask == 0) {
+                c = pgm_read_byte(p++);
+                mask = 0x80;
+            }
+            pixel = (c & mask) ? color : bg;
+            //tft.pushColors(&pixel, 1, first);
+            mylcd.Push_Any_Color(&pixel, 1, first, 0);
+            first = 0;
+            mask >>= 1;
+        }
+    }
+    //tft.setAddrWindow(0, 0, tft.width() - 1, tft.height() - 1);
+    mylcd.Set_Addr_Window(0, 0, mylcd.Get_Width() - 1, mylcd.Get_Height() - 1);
+}
+
+void drawBitmap(int16_t x, int16_t y, const uint8_t bitmap[], int16_t w, int16_t h, uint16_t color, uint16_t bg)
+{
+    showbgd(x, y, bitmap, w, h, color, bg, 7);
+}
+
+
+//RATIO INFO OF THE SCREEN
+const int width = 480;
+const int height = 320;
+
+float duration, distance; 
+
+//PINS FOR THE OUTPUTS
+
+
+//The vibrations
+int motor1pin1 = 22;
+int motor1pin2 = 23;
+
+int motor2pin1 = 24;
+int motor2pin2 = 25;
+
+//The motors
+
+//The top
+int motor4pin1 = 28;
+int motor4pin2 = 29;
+
+//The bottom part
+int motor3pin1 = 26;
+int motor3pin2 = 27;
+
+
+
+//PINS FOR THE VISUAL DISTANCE SENSOR
+const int trigPin = 40;  
+const int echoPin = 40; 
+
+
+bool goingTwo = false;
+
+//TIME TO GO OFF
+int hourSet = 0;
+int minuteSet = 0;
+int secondSet = 25;
+
+//INFORMATION OF THE BUTTON VISUALS/ BUTTON INFO
+float a = width * .1;
+float b = height * .7;
+float c = width * .3;
+float d = height * .4;
+
+float a2 = width * .6;
+float b2 = height * .7;
+float c2 = width * .3;
+float d2 = height * .4;
+
+float a3 = width * .8;
+float b3 = height * .4;
+float c3 = width * .1;
+float d3 = height * .1;
+
+float a4 = width * .9;
+float b4 = height * .4;
+float c4 = width * .1;
+float d4 = height * .1;
+
+float a5 = width * .2;
+float b5 = height * .4;
+float c5 = width * .1;
+float d5 = height * .1;
+
+float a6 = width * .1;
+float b6 = height * .4;
+float c6 = width * .1;
+float d6 = height * .1;
+
+
+
+
+float a7 = width * .8;
+float b7 = height * .2;
+float c7 = width * .1;
+float d7 = height * .1;
+
+float a8 = width * .9;
+float b8 = height * .2;
+float c8 = width * .1;
+float d8 = height * .1;
+
+float a9 = width * .2;
+float b9 = height * .2;
+float c9 = width * .1;
+float d9 = height * .1;
+
+float aa = width * .1;
+float ba = height * .2;
+float ca = width * .1;
+float da = height * .1;
+
+float dayas = width * 0;
+float daybs = height * .6;
+float daycs = width * .1;
+float dayds = height * .1;
+
+float dayam = width * .15;
+float daybm = height * .6;
+float daycm = width * .1;
+float daydm = height * .1;
+
+float dayat = width * .3;
+float daybt = height * .6;
+float dayct = width * .1;
+float daydt = height * .1;
+
+float dayaw = width * .45;
+float daybw = height * .6;
+float daycw = width * .1;
+float daydw = height * .1;
+
+float dayath = width * .6;
+float daybth = height * .6;
+float daycth = width * .1;
+float daydth = height * .1;
+
+float dayaf = width * .75;
+float daybf = height * .6;
+float daycf = width * .1;
+float daydf = height * .1;
+
+float dayast = width * .9;
+float daybst = height * .6;
+float daycst = width * .1;
+float daydst = height * .1;
+
+const int speakerPin = 52;
+
+
+#define NOTE_FS4 370
+#define NOTE_G4  392
+#define NOTE_A4  440
+#define NOTE_B4  494
+#define NOTE_D5  587
+#define NOTE_E5  659
+#define NOTE_FS5 740
+#define NOTE_G5  784
+#define NOTE_A5  880
+#define REST     0
+
+int melody[] = {
+  // "Some-" "-body" "once" "told" "me"
+  NOTE_A4, NOTE_FS4,NOTE_D5,NOTE_G5
+};
+
+// Note durations: 8 = eighth note, 4 = quarter note, 2 = half note
+int noteDurations[] = {
+  // "Some-" "-body" "once" "told" "me"
+  8, 8, 8, 8
+};
+
+void setup() 
+{
+  pinMode(speakerPin, OUTPUT);
+  pinMode(trigPin, OUTPUT);  
+	pinMode(echoPin, INPUT);  
+	Serial.begin(9600);  
+
+  //STARTS THE OUTPUTS
+  pinMode(motor1pin1, OUTPUT);
+  pinMode(motor1pin2, OUTPUT);
+  pinMode(motor2pin1, OUTPUT);
+  pinMode(motor2pin2, OUTPUT);
+
+  pinMode(motor3pin1, OUTPUT);
+  pinMode(motor3pin2, OUTPUT);
+  pinMode(motor4pin1, OUTPUT);
+  pinMode(motor4pin2, OUTPUT);
+  
+  //STARTS THE DISPLAY
+  mylcd.Init_LCD();
+  mylcd.Fill_Screen(BLACK);
+  mylcd.Fill_Screen(WHITE);
+  mylcd.Set_Text_Mode(0);
+  mylcd.Set_Rotation(45);
+
+  //DRAWS THE LOGO
+  drawBitmap(5, -30, bitmap_dosedoc, 100, 100, WHITE, BLACK);
+  
+
+  //THIS WRITES DOSE DOC
+  mylcd.Set_Text_colour(BLUE);
+  mylcd.Set_Text_Back_colour(WHITE);
+  mylcd.Set_Text_Size(7);
+  mylcd.Print_String("DOSEDOC!", 100, 0);
+
+  mylcd.Set_Text_Size(3);
+  mylcd.Print_String("MON", 421, 0);
+ 
+
+
+  //THIS MAKES THE VISUALS FOR THE BUTTONS
+  mylcd.Set_Text_colour(BLUE);
+  mylcd.Set_Draw_color(BLUE);
+  
+  mylcd.Fill_Rect(a,b,c,d, BLUE);
+  mylcd.Fill_Rect(a2,b2,c2,d2, GREEN);
+  
+  mylcd.Fill_Rect(a3,b3,c3,d3, YELLOW);
+  mylcd.Fill_Rect(a4,b4,c4,d4, BLACK);
+  mylcd.Fill_Rect(a5,b5,c5,d5, CYAN);
+  mylcd.Fill_Rect(a6,b6,c6,d6, MAGENTA);
+
+  mylcd.Fill_Rect(a7,b7,c7,d7, YELLOW);
+  mylcd.Fill_Rect(a8,b8,c8,d8, BLACK);
+  mylcd.Fill_Rect(a9,b9,c9,d9, CYAN);
+  mylcd.Fill_Rect(aa,ba,ca,da, MAGENTA);
+
+   
+  
+
+   
+  //WRITES THE ALARM TIME
+  mylcd.Set_Text_colour(BLUE);
+  mylcd.Set_Text_Size(5);
+  String hourSetVis = String(hourSet);
+  if(hourSet < 10){
+    hourSetVis = "0" + hourSetVis;
+  }
+  String minuteSetVis = String(minuteSet);
+  if(minuteSet < 10){
+    minuteSetVis = "0" + minuteSetVis;
+  }
+  String secondSetVis = String(secondSet);
+  if(secondSet < 10){
+    secondSetVis = "0" + secondSetVis;
+  }
+
+  mylcd.Set_Text_colour(RED);
+  mylcd.Set_Text_Back_colour(WHITE);
+  mylcd.Print_String(hourSetVis + ":" + minuteSetVis + ":" + secondSetVis, width * .3, height * 0.4);
+  mylcd.Set_Text_colour(BLUE);
+
+mylcd.Set_Text_Size(2);
+ mylcd.Fill_Rect(dayas,daybs,daycs,dayds, RED);
+ mylcd.Print_String("Sun", dayas, daybs);
+ mylcd.Fill_Rect(dayam,daybm,daycm,daydm, RED);
+  mylcd.Print_String("MON", dayam, daybm);
+ mylcd.Fill_Rect(dayat,daybt,dayct,daydt, RED);
+   mylcd.Print_String("TUE", dayat, daybt);
+ mylcd.Fill_Rect(dayaw,daybw,daycw,daydw, RED);
+   mylcd.Print_String("WEN", dayaw, daybw);
+ mylcd.Fill_Rect(dayath,daybth,daycth,daydth, RED);
+ mylcd.Print_String("THU", dayath, daybth);
+ mylcd.Fill_Rect(dayaf,daybf,daycf,daydf, RED);
+ mylcd.Print_String("FRI", dayaf, daybf);
+ mylcd.Fill_Rect(dayast,daybst,daycst,daydst, RED);
+ mylcd.Print_String("SAT", dayast, daybst);
+ mylcd.Set_Text_Size(5);
+}
+
+
+
+int savedSec = 0;
+
+int triggered = 0;
+long long change = 0;
+long long milli;
+
+int hours = 0;
+int minutes = 0;
+int seconds = 0;
+
+bool going = false;
+
+void updateTime(){
+  milli = millis() + change;
+  if(milli < 0){
+    while(milli < 0){
+      change += 86400000;
+      milli = millis() + change;
+    }
+  }
+  hours = ((((milli / 1000) / 60) / 60) % 24);
+  minutes = (((milli / 1000) / 60) % 60);
+  seconds = (milli / 1000) % 60;
+}
+
+void loop() 
+{
+  
+  mylcd.Set_Text_colour(BLUE);
+  milli = millis() + change;
+  if(milli < 0){
+    while(milli < 0){
+      change += 86400000;
+      milli = millis() + change;
+    }
+  }
+  hours = ((((milli / 1000) / 60) / 60) % 24);
+  minutes = (((milli / 1000) / 60) % 60);
+  seconds = (milli / 1000) % 60;
+
+  String hour = String(hours);
+  if(hours < 10){
+    hour = "0" + hour;
+  }
+  String minute = String(minutes);
+  if(minutes < 10){
+    minute = "0" + minute;
+  }
+  String second = String(seconds);
+  if(seconds < 10){
+    second = "0" + second;
+  }
+
+  
+  
+  
+  if(hours == hourSet && minutes == minuteSet && seconds > secondSet && seconds < secondSet + 2.5 && !going && !goingTwo){
+    if(goingTwo == false){
+    Serial.print("GOING OFF");
+    goingTwo = true;
+    going = true;
+    digitalWrite(motor1pin1, HIGH);
+    digitalWrite(motor1pin2, LOW);
+
+    digitalWrite(motor2pin1, HIGH);
+    digitalWrite(motor2pin2, LOW);
+
+
+    digitalWrite(motor3pin1, LOW);
+    digitalWrite(motor3pin2, HIGH);
+
+    digitalWrite(motor4pin1, LOW);
+    digitalWrite(motor4pin2, HIGH);
+
+    delay(2500);
+
+    // Run motor forward
+  digitalWrite(motor4pin2, 255);  // Forward direction
+  digitalWrite(motor4pin1, LOW);
+  //analogWrite(ena, 255);    // Full speed (0-255)
+  delay(400);              // Run for 2 seconds
+
+  // Stop motor
+  digitalWrite(motor4pin2, LOW);   // Both LOW to coast
+  digitalWrite(motor4pin1, LOW);
+  //analogWrite(ena, 0);      // No power
+  delay(7000);              // Stop for 1 second
+
+  // Run motor backward
+  digitalWrite(motor4pin2, LOW);   // Reverse direction
+  digitalWrite(motor4pin1, HIGH);
+  //analogWrite(ena, 255);    // Full speed
+  delay(1000);              // Run for 2 seconds
+
+  // Stop motor again
+  digitalWrite(motor4pin1, LOW);   // Both LOW to coast
+  digitalWrite(motor4pin2, LOW);
+  //analogWrite(ena, 0);      // No power
+  delay(1000);              // Stop for 1 second
+  going = false;
+  goingTwo = false;
+
+    }
+    
+
+    
+    // Calculate the number of notes
+  int numNotes = sizeof(melody) / sizeof(melody[0]);
+  
+  // Play each note
+  for (int thisNote = 0; thisNote < numNotes; thisNote++) {
+    // Calculate duration in milliseconds
+    int duration = 1000 / noteDurations[thisNote];
+    tone(speakerPin, melody[thisNote], duration);
+    
+    // Add a slight pause between notes (30% of note duration)
+    int pause = duration * 1.30;
+    delay(pause);
+    
+    // Stop the tone
+    noTone(speakerPin);
+    
+  }
+    
+  }
+  else{
+    if(!going){
+    digitalWrite(motor1pin1, LOW);
+    digitalWrite(motor1pin2, LOW);
+
+    digitalWrite(motor2pin1, LOW);
+    digitalWrite(motor2pin2, LOW);
+
+    digitalWrite(motor3pin1, LOW);
+    digitalWrite(motor3pin2, HIGH);
+
+    digitalWrite(motor4pin1, LOW);
+    digitalWrite(motor4pin2, HIGH);
+
+    }
+  }
+  
+  
+  uint16_t lastpos[2];
+
+  my_tp.FT6336_Scan();
+  lastpos[0]=my_tp.x[0];
+  lastpos[1]=my_tp.y[0];
+  mylcd.Set_Text_colour(BLUE);
+  mylcd.Set_Draw_color(BLUE);
+
+  if(abs(savedSec - seconds) > 10){
+  mylcd.Print_String(hour + ":" + minute + ":" + second, width * .3, height * 0.2);
+  savedSec = seconds;
+  }
+
+  if(seconds % 5 == 0){
+
+    digitalWrite(trigPin, LOW);  
+    delayMicroseconds(2);  
+    digitalWrite(trigPin, HIGH);  
+    delayMicroseconds(10);  
+    digitalWrite(trigPin, LOW);  
+    duration = pulseIn(echoPin, HIGH);
+    distance = (duration*.0343)/2;    
+    //mylcd.Print_String(String(distance), width * .15, height * 0.4);
+    //Serial.print("Distance: ");  
+    
+    //Serial.println(distance);  
+  }
+  
+  
+  //THIS ARE THE BUTTONS TO REPROGRAM FOR THE TIMER
+  if(lastpos[1] > a3 && lastpos[1] < a3 + c3 && lastpos[0] < 320 - b3 && lastpos[0] > 320 - (b3 + d3)){
+    triggered += 1;
+    if(triggered > 2){
+      triggered = 0;
+    minuteSet = (minuteSet + 1) % 60;
+    String hourSetVis = String(hourSet);if(hourSet < 10){hourSetVis = "0" + hourSetVis;}String minuteSetVis = String(minuteSet);if(minuteSet < 10){minuteSetVis = "0" + minuteSetVis;}String secondSetVis = String(secondSet);if(secondSet < 10){secondSetVis = "0" + secondSetVis;}mylcd.Set_Text_colour(RED);
+  mylcd.Set_Text_Back_colour(WHITE);
+  mylcd.Print_String(hourSetVis + ":" + minuteSetVis + ":" + secondSetVis, width * .3, height * 0.4);
+  mylcd.Set_Text_colour(BLUE);;
+    }
+  }
+
+  if(lastpos[1] > a5 && lastpos[1] < a5 + c5 && lastpos[0] < 320 - b5 && lastpos[0] > 320 - (b5 + d5)){
+    triggered += 1;
+    if(triggered > 2){
+      triggered = 0;
+    minuteSet = (minuteSet - 1) % 60;
+    if(minuteSet < 0){
+      minuteSet = 59;
+    }
+    String hourSetVis = String(hourSet);if(hourSet < 10){hourSetVis = "0" + hourSetVis;}String minuteSetVis = String(minuteSet);if(minuteSet < 10){minuteSetVis = "0" + minuteSetVis;}String secondSetVis = String(secondSet);if(secondSet < 10){secondSetVis = "0" + secondSetVis;}mylcd.Set_Text_colour(RED);
+  mylcd.Set_Text_Back_colour(WHITE);
+  mylcd.Print_String(hourSetVis + ":" + minuteSetVis + ":" + secondSetVis, width * .3, height * 0.4);
+  mylcd.Set_Text_colour(BLUE);;
+    }
+  }
+
+  if(lastpos[1] > a4 && lastpos[1] < a4 + c4 && lastpos[0] < 320 - b4 && lastpos[0] > 320 - (b4 + d4)){
+    triggered += 1;
+    if(triggered > 2){
+      triggered = 0;
+    hourSet = (hourSet + 1) % 24;
+    String hourSetVis = String(hourSet);if(hourSet < 10){hourSetVis = "0" + hourSetVis;}String minuteSetVis = String(minuteSet);if(minuteSet < 10){minuteSetVis = "0" + minuteSetVis;}String secondSetVis = String(secondSet);if(secondSet < 10){secondSetVis = "0" + secondSetVis;}mylcd.Set_Text_colour(RED);
+  mylcd.Set_Text_Back_colour(WHITE);
+  mylcd.Print_String(hourSetVis + ":" + minuteSetVis + ":" + secondSetVis, width * .3, height * 0.4);
+  mylcd.Set_Text_colour(BLUE);;
+    }
+  }
+
+  if(lastpos[1] > a6 && lastpos[1] < a6 + c6 && lastpos[0] < 320 - b6 && lastpos[0] > 320 - (b6 + d6)){
+    triggered += 1;
+    if(triggered > 2){
+      triggered = 0;
+    hourSet = (hourSet - 1) % 24;
+    updateTime();
+    if(hourSet < 0){
+      hourSet = 23;
+    }
+    String hourSetVis = String(hourSet);if(hourSet < 10){hourSetVis = "0" + hourSetVis;}String minuteSetVis = String(minuteSet);if(minuteSet < 10){minuteSetVis = "0" + minuteSetVis;}String secondSetVis = String(secondSet);if(secondSet < 10){secondSetVis = "0" + secondSetVis;}mylcd.Set_Text_colour(RED);
+  mylcd.Set_Text_Back_colour(WHITE);
+  mylcd.Print_String(hourSetVis + ":" + minuteSetVis + ":" + secondSetVis, width * .3, height * 0.4);
+  mylcd.Set_Text_colour(BLUE);;
+    }
+  }
+
+    if(lastpos[1] > a7 && lastpos[1] < a7 + c7 && lastpos[0] < 320 - b7 && lastpos[0] > 320 - (b7 + d7)){
+    triggered += 1;
+    if(triggered > 2){
+      triggered = 0;
+    //minutes = (minutes + 1) % 60;
+    change = change + 60000;
+    updateTime();
+
+    String hour = String(hours);
+    if(hours < 10){
+      hour = "0" + hour;
+    }
+    String minute = String(minutes);
+    if(minutes < 10){
+      minute = "0" + minute;
+    }
+    String second = String(seconds);
+    if(seconds < 10){
+      second = "0" + second;
+    }
+    mylcd.Print_String(hour + ":" + minute + ":" + second, width * .3, height * 0.2);
+
+    }
+  }
+//THIS IS THE BUTTONS TO REPROGRAM FOR THE CLOCK/CURRENT TIME
+  if(lastpos[1] > a8 && lastpos[1] < a8 + c8 && lastpos[0] < 320 - b8 && lastpos[0] > 320 - (b8 + d8)){
+    triggered += 1;
+    if(triggered > 2){
+      triggered = 0;
+    //minutes = (minutes - 1) % 60;
+    if(minutes < 0){
+      minutes = 59;
+    }
+    change = change + 3600000;
+
+    updateTime();
+    String hour = String(hours);
+    if(hours < 10){
+      hour = "0" + hour;
+    }
+    String minute = String(minutes);
+    if(minutes < 10){
+      minute = "0" + minute;
+    }
+    String second = String(seconds);
+    if(seconds < 10){
+      second = "0" + second;
+    }
+    mylcd.Print_String(hour + ":" + minute + ":" + second, width * .3, height * 0.2);
+    }
+  }
+
+
+  if(lastpos[1] > a9 && lastpos[1] < a9 + c9 && lastpos[0] < 320 - b9 && lastpos[0] > 320 - (b9 + d9)){
+    triggered += 1;
+    if(triggered > 2){
+      triggered = 0;
+    //hours = (hours + 1) % 24;
+    change -= 60000;
+    updateTime();
+    String hour = String(hours);
+    if(hours < 10){
+      hour = "0" + hour;
+    }
+    String minute = String(minutes);
+    if(minutes < 10){
+      minute = "0" + minute;
+    }
+    String second = String(seconds);
+    if(seconds < 10){
+      second = "0" + second;
+    }
+    mylcd.Print_String(hour + ":" + minute + ":" + second, width * .3, height * 0.2);
+    }
+  }
+
+  if(lastpos[1] > aa && lastpos[1] < aa + ca && lastpos[0] < 320 - ba && lastpos[0] > 320 - (ba + da)){
+    triggered += 1;
+    if(triggered > 2){
+      triggered = 0;
+    //hours = (hours - 1) % 24;
+    
+    change = change - 3600000;
+    updateTime();
+    if(hours < 0){
+      hours = 23;
+    }
+    String hour = String(hours);
+    if(hours < 10){
+      hour = "0" + hour;
+    }
+    String minute = String(minutes);
+    if(minutes < 10){
+      minute = "0" + minute;
+    }
+    String second = String(seconds);
+    if(seconds < 10){
+      second = "0" + second;
+    }
+    mylcd.Print_String(hour + ":" + minute + ":" + second, width * .3, height * 0.2);
+    }
+  }
+
+  //THIS IS THE BUTTONS TO MANUALLY SET OFF THE DEVICE
+
+ if(lastpos[1] > a && lastpos[1] < a + c && lastpos[0] < 320 - b && lastpos[0] > 320 - (b + d)){
+
+    digitalWrite(motor1pin1, HIGH);
+    digitalWrite(motor1pin2, LOW);
+
+    digitalWrite(motor2pin1, HIGH);
+    digitalWrite(motor2pin2, LOW);
+
+
+    digitalWrite(motor3pin1, LOW);
+    digitalWrite(motor3pin2, HIGH);
+
+    delay(1000);
+
+    digitalWrite(motor4pin1, LOW);
+    digitalWrite(motor4pin2, HIGH);
+
+
+
+    mylcd.Set_Text_colour(BLUE);
+    mylcd.Set_Text_Back_colour(WHITE);
+    //mylcd.Print_String("BUTTON1", width * .3, 100);
+
+  }
+  //THIS IS THE BUTTONS TO MANUALLY RETURN THE DEVICE BACK TO NOT DISPENSE
+   if(lastpos[1] > a2 && lastpos[1] < a2 + c2 && lastpos[0] < 320 - b2 && lastpos[0] > 320 - (b2 + d2)){
+  
+    digitalWrite(motor1pin1, LOW);
+    digitalWrite(motor1pin2, LOW);
+
+    digitalWrite(motor2pin1, LOW);
+    digitalWrite(motor2pin2, LOW);
+
+    digitalWrite(motor3pin1, HIGH);
+    digitalWrite(motor3pin2, LOW);
+
+    digitalWrite(motor4pin1, HIGH);
+    digitalWrite(motor4pin2, LOW);
+    
+
+    
+
+    
+    mylcd.Set_Text_colour(BLUE);
+
+  mylcd.Set_Text_Back_colour(WHITE);
+   // mylcd.Print_String("BUTTON2", width * .3, 100);
+
+  }
+}
