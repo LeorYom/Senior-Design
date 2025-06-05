@@ -14,7 +14,7 @@
 //Remember to set the pins to suit your display module!
 
 
-//PROGRAMMED BY DANNY MOSS
+//PROGRAMMED BY Leor Yomtobian
 
 /***********************************************************************************
 * @attention
